@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="MindMapper — Upload RTF files and instantly visualize them as interactive mind maps">
+  <title>MindMapper — RTF to Mind Map</title>
+  <link rel="stylesheet" href="index.css">
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+<div id="app">
+
+  <!-- Toolbar -->
+  <header class="toolbar">
+    <div class="toolbar__brand">
+      <div class="toolbar__logo">🧠</div>
+      <span class="toolbar__title">MindMapper</span>
+      <span id="filename-display" class="toolbar__filename"></span>
+    </div>
+
+    <div class="search-container">
+      <span class="search-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
+      <input type="text" id="search-input" class="search-input" placeholder="Search nodes… (Ctrl+F)">
+    </div>
+
+    <div class="toolbar__separator"></div>
+
+    <button id="btn-expand-all" class="toolbar__btn" title="Expand all nodes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+      Expand All
+    </button>
+
+    <button id="btn-collapse-all" class="toolbar__btn" title="Collapse all nodes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+      Collapse All
+    </button>
+
+    <button id="btn-reset-view" class="toolbar__btn toolbar__btn--accent" title="Reset viewport">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      Reset View
+    </button>
+
+    <button id="btn-open-file" class="toolbar__btn toolbar__btn--accent" title="Open RTF file (Ctrl+O)" onclick="document.getElementById('file-input').click()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Open File
+    </button>
+  </header>
+
+  <!-- Canvas area -->
+  <main class="canvas-area">
+
+    <!-- Upload screen -->
+    <div id="upload-screen" class="upload-screen">
+      <div class="upload-card">
+        <div class="upload-card__icon">🧠</div>
+        <h1 class="upload-card__title">MindMapper</h1>
+        <p class="upload-card__subtitle">Transform your RTF documents into beautiful,<br>interactive mind maps in seconds.</p>
+        <div id="dropzone" class="upload-dropzone">
+          <p class="upload-dropzone__text">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Drop your <strong>.rtf</strong> file here
+          </p>
+          <p class="upload-dropzone__hint">or click to browse • Ctrl+O</p>
+          <input type="file" id="file-input" accept=".rtf">
+        </div>
+      </div>
+    </div>
+
+    <!-- Mind map container -->
+    <div id="canvas-container" style="width:100%;height:100%;"></div>
+
+    <!-- Stats bar -->
+    <div class="stats-bar">
+      <div class="stats-chip">
+        <span class="stats-chip__dot"></span>
+        <span id="stats-nodes">0</span> nodes
+      </div>
+      <div class="stats-chip">
+        <span class="stats-chip__dot" style="background: var(--accent-4)"></span>
+        Depth: <span id="stats-depth">0</span>
+      </div>
+    </div>
+
+    <!-- Zoom controls -->
+    <div class="zoom-controls">
+      <button id="btn-zoom-in" class="zoom-btn" title="Zoom in">+</button>
+      <button id="btn-zoom-out" class="zoom-btn" title="Zoom out">−</button>
+      <button id="btn-fit-view" class="zoom-btn" title="Fit to view">⊡</button>
+    </div>
+
+  </main>
+</div>
+
+<script src="rtfParser.js"></script>
+<script src="mindmap.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
