@@ -124,7 +124,8 @@ class MindMapRenderer {
       .append('path')
       .attr('class', 'link-path')
       .attr('d', d => {
-        const o = { x: d.source.x, y: d.source.y };
+        const srcW = self._nodeWidth(d.source);
+        const o = { x: d.source.x, y: d.source.y + srcW };
         return self._linkPath({ source: o, target: o });
       })
       .attr('stroke', d => self._getNodeColor(d.target));
@@ -133,7 +134,10 @@ class MindMapRenderer {
     linkEnter.merge(links)
       .transition()
       .duration(duration)
-      .attr('d', d => self._linkPath(d))
+      .attr('d', d => {
+        const srcW = self._nodeWidth(d.source);
+        return self._linkPath(d, srcW);
+      })
       .attr('stroke', d => self._getNodeColor(d.target));
 
     // Exit
@@ -141,7 +145,8 @@ class MindMapRenderer {
       .transition()
       .duration(duration)
       .attr('d', d => {
-        const o = { x: d.source.x, y: d.source.y };
+        const srcW = self._nodeWidth(d.source);
+        const o = { x: d.source.x, y: d.source.y + srcW };
         return self._linkPath({ source: o, target: o });
       })
       .remove();
@@ -364,10 +369,12 @@ class MindMapRenderer {
     this.svg.transition().duration(300).call(this.zoom.scaleBy, 0.7);
   }
 
-  _linkPath(d) {
-    return `M${d.source.y},${d.source.x}
-            C${(d.source.y + d.target.y) / 2},${d.source.x}
-             ${(d.source.y + d.target.y) / 2},${d.target.x}
+  _linkPath(d, srcWidth) {
+    srcWidth = srcWidth || 0;
+    const sy = d.source.y + srcWidth;
+    return `M${sy},${d.source.x}
+            C${(sy + d.target.y) / 2},${d.source.x}
+             ${(sy + d.target.y) / 2},${d.target.x}
              ${d.target.y},${d.target.x}`;
   }
 
