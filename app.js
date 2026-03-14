@@ -1,12 +1,21 @@
 /**
  * MindMapper — App orchestration
  */
-import { SUPABASE_CONFIG } from './supabaseConfig.js';
 
 let renderer = null;
 let supabaseClient = null;
 const MAX_FILES = 10;
 const MAX_BUCKET_SIZE = 50 * 1024 * 1024; // 50 MB
+
+// Helper to get environment variables safely
+const getEnv = (key) => {
+  try {
+    // Vite populates import.meta.env
+    return import.meta.env[key];
+  } catch (e) {
+    return '';
+  }
+};
 
 document.addEventListener('DOMContentLoaded', () => {
   const uploadScreen = document.getElementById('upload-screen');
@@ -38,8 +47,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const usageFill = document.getElementById('usage-fill');
 
   // -- Init Supabase
-  if (SUPABASE_CONFIG.url && SUPABASE_CONFIG.url !== 'https://your-project-url.supabase.co') {
-    supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+  const sbUrl = getEnv('VITE_SUPABASE_URL');
+  const sbKey = getEnv('VITE_SUPABASE_ANON_KEY');
+  
+  if (sbUrl && sbUrl !== 'https://your-project-url.supabase.co') {
+    supabaseClient = window.supabase.createClient(sbUrl, sbKey);
   }
 
   // -- Init renderer
@@ -203,8 +215,9 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Uploading to community...', 'info');
       
       // 1. Check existing files for FIFO
+      const bucket = getEnv('VITE_SUPABASE_BUCKET') || 'mindmaps';
       const { data: existingFiles, error: listError } = await supabaseClient.storage
-        .from(SUPABASE_CONFIG.bucketName)
+        .from(bucket)
         .list('', { sortBy: { column: 'created_at', order: 'asc' } });
 
       if (listError) throw listError;
@@ -213,14 +226,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (existingFiles.length >= MAX_FILES) {
         const oldest = existingFiles[0];
         await supabaseClient.storage
-          .from(SUPABASE_CONFIG.bucketName)
+          .from(bucket)
           .remove([oldest.name]);
       }
 
       // 3. Upload new file
       const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
       const { error: uploadError } = await supabaseClient.storage
-        .from(SUPABASE_CONFIG.bucketName)
+        .from(bucket)
         .upload(fileName, file);
 
       if (uploadError) throw uploadError;
@@ -240,8 +253,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!checkSupabase()) return;
 
     try {
+      const bucket = getEnv('VITE_SUPABASE_BUCKET') || 'mindmaps';
       const { data: files, error } = await supabaseClient.storage
-        .from(SUPABASE_CONFIG.bucketName)
+        .from(bucket)
         .list('', { sortBy: { column: 'created_at', order: 'desc' } });
 
       if (error) throw error;
@@ -291,8 +305,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load a specific community file
   async function loadCommunityFile(name) {
     try {
+      const bucket = getEnv('VITE_SUPABASE_BUCKET') || 'mindmaps';
       const { data, error } = await supabaseClient.storage
-        .from(SUPABASE_CONFIG.bucketName)
+        .from(bucket)
         .download(name);
 
       if (error) throw error;
