@@ -1,16 +1,17 @@
 {
   "name": "mindmapper",
   "version": "1.0.0",
-  "description": "��#\u0000 \u0000M\u0000i\u0000n\u0000d\u0000M\u0000a\u0000p\u0000p\u0000e\u0000r\u0000\r\u0000 \u0000",
+  "description": "#\u0000 \u0000M\u0000i\u0000n\u0000d\u0000M\u0000a\u0000p\u0000p\u0000e\u0000r\u0000\r\u0000 \u0000",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "express": "^5.2.1",
-    "multer": "^2.1.1"
+  "devDependencies": {
+    "vite": "^8.0.0"
   }
 }
