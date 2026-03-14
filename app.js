@@ -4,7 +4,7 @@
 import { SUPABASE_CONFIG } from './supabaseConfig.js';
 
 let renderer = null;
-let supabase = null;
+let supabaseClient = null;
 const MAX_FILES = 10;
 const MAX_BUCKET_SIZE = 50 * 1024 * 1024; // 50 MB
 
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // -- Init Supabase
   if (SUPABASE_CONFIG.url && SUPABASE_CONFIG.url !== 'https://your-project-url.supabase.co') {
-    supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+    supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
   }
 
   // -- Init renderer
@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================================
 
   function checkSupabase() {
-    if (!supabase) {
+    if (!supabaseClient) {
       showToast('Please configure Supabase in supabaseConfig.js', 'error');
       return false;
     }
@@ -203,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Uploading to community...', 'info');
       
       // 1. Check existing files for FIFO
-      const { data: existingFiles, error: listError } = await supabase.storage
+      const { data: existingFiles, error: listError } = await supabaseClient.storage
         .from(SUPABASE_CONFIG.bucketName)
         .list('', { sortBy: { column: 'created_at', order: 'asc' } });
 
@@ -212,14 +212,14 @@ document.addEventListener('DOMContentLoaded', () => {
       // 2. FIFO Logic: If >= MAX_FILES, delete oldest
       if (existingFiles.length >= MAX_FILES) {
         const oldest = existingFiles[0];
-        await supabase.storage
+        await supabaseClient.storage
           .from(SUPABASE_CONFIG.bucketName)
           .remove([oldest.name]);
       }
 
       // 3. Upload new file
       const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabaseClient.storage
         .from(SUPABASE_CONFIG.bucketName)
         .upload(fileName, file);
 
@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!checkSupabase()) return;
 
     try {
-      const { data: files, error } = await supabase.storage
+      const { data: files, error } = await supabaseClient.storage
         .from(SUPABASE_CONFIG.bucketName)
         .list('', { sortBy: { column: 'created_at', order: 'desc' } });
 
@@ -291,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load a specific community file
   async function loadCommunityFile(name) {
     try {
-      const { data, error } = await supabase.storage
+      const { data, error } = await supabaseClient.storage
         .from(SUPABASE_CONFIG.bucketName)
         .download(name);
 

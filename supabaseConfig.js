@@ -1,5 +1,13 @@
+const getEnv = (key) => {
+  try {
+    return import.meta.env[key];
+  } catch (e) {
+    return '';
+  }
+};
+
 export const SUPABASE_CONFIG = {
-  url: import.meta.env.VITE_SUPABASE_URL,
-  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-  bucketName: import.meta.env.VITE_SUPABASE_BUCKET
+  url: getEnv('VITE_SUPABASE_URL'),
+  anonKey: getEnv('VITE_SUPABASE_ANON_KEY'),
+  bucketName: getEnv('VITE_SUPABASE_BUCKET') || 'mindmaps'
 };
