@@ -1,8 +1,12 @@
 /**
  * MindMapper — App orchestration
  */
+import { SUPABASE_CONFIG } from './supabaseConfig.js';
 
 let renderer = null;
+let supabase = null;
+const MAX_FILES = 10;
+const MAX_BUCKET_SIZE = 50 * 1024 * 1024; // 50 MB
 
 document.addEventListener('DOMContentLoaded', () => {
   const uploadScreen = document.getElementById('upload-screen');
@@ -30,6 +34,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnShareUpload = document.getElementById('btn-share-upload');
   const communityFileInput = document.getElementById('community-file-input');
   const toastEl = document.getElementById('toast');
+  const usageText = document.getElementById('usage-text');
+  const usageFill = document.getElementById('usage-fill');
+
+  // -- Init Supabase
+  if (SUPABASE_CONFIG.url && SUPABASE_CONFIG.url !== 'https://your-project-url.supabase.co') {
+    supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+  }
 
   // -- Init renderer
   renderer = new MindMapRenderer(canvasContainer);
@@ -146,8 +157,16 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // =========================================
-  // Community Panel
+  // Community Panel (Supabase)
   // =========================================
+
+  function checkSupabase() {
+    if (!supabase) {
+      showToast('Please configure Supabase in supabaseConfig.js', 'error');
+      return false;
+    }
+    return true;
+  }
 
   // Toggle panel
   btnCommunity.addEventListener('click', () => {
@@ -163,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Share upload button
   btnShareUpload.addEventListener('click', () => {
-    communityFileInput.click();
+    if (checkSupabase()) communityFileInput.click();
   });
 
   communityFileInput.addEventListener('change', async (e) => {
@@ -180,82 +199,113 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
-      });
+      showToast('Uploading to community...', 'info');
+      
+      // 1. Check existing files for FIFO
+      const { data: existingFiles, error: listError } = await supabase.storage
+        .from(SUPABASE_CONFIG.bucketName)
+        .list('', { sortBy: { column: 'created_at', order: 'asc' } });
 
-      const data = await res.json();
+      if (listError) throw listError;
 
-      if (!res.ok) {
-        showToast(data.error || 'Upload failed', 'error');
-        return;
+      // 2. FIFO Logic: If >= MAX_FILES, delete oldest
+      if (existingFiles.length >= MAX_FILES) {
+        const oldest = existingFiles[0];
+        await supabase.storage
+          .from(SUPABASE_CONFIG.bucketName)
+          .remove([oldest.name]);
       }
 
-      showToast(`"${file.name}" shared with community! (${data.totalFiles}/10)`, 'success');
+      // 3. Upload new file
+      const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
+      const { error: uploadError } = await supabase.storage
+        .from(SUPABASE_CONFIG.bucketName)
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      showToast(`"${file.name}" shared with community!`, 'success');
       loadCommunityFiles();
     } catch (err) {
-      showToast('Upload failed. Is the server running?', 'error');
+      console.error(err);
+      showToast('Upload failed: ' + err.message, 'error');
     }
 
-    // Reset the input
     communityFileInput.value = '';
   });
 
-  // Load community file list
+  // Load community file list & usage stats
   async function loadCommunityFiles() {
-    try {
-      const res = await fetch('/api/files');
-      const files = await res.json();
+    if (!checkSupabase()) return;
 
-      if (files.length === 0) {
+    try {
+      const { data: files, error } = await supabase.storage
+        .from(SUPABASE_CONFIG.bucketName)
+        .list('', { sortBy: { column: 'created_at', order: 'desc' } });
+
+      if (error) throw error;
+
+      // Update Usage Stats
+      const totalSize = files.reduce((acc, f) => acc + (f.metadata?.size || 0), 0);
+      updateUsageIndicator(totalSize);
+
+      if (!files || files.length === 0) {
         communityList.innerHTML = '<div class="community-panel__empty">No files shared yet</div>';
         return;
       }
 
-      communityList.innerHTML = files
-        .slice()
-        .reverse() // newest first
-        .map(f => `
-          <div class="community-file" data-id="${f.id}" title="Click to view as mind map">
-            <div class="community-file__icon">📄</div>
-            <div class="community-file__info">
-              <div class="community-file__name">${escapeHtml(f.name)}</div>
-              <div class="community-file__meta">${formatSize(f.size)} • ${formatTime(f.uploadedAt)}</div>
-            </div>
-            <span class="community-file__arrow">→</span>
+      communityList.innerHTML = files.map(f => `
+        <div class="community-file" data-name="${f.name}" title="Click to view mind map">
+          <div class="community-file__icon">📄</div>
+          <div class="community-file__info">
+            <div class="community-file__name">${escapeHtml(f.name.split('_').slice(1).join('_'))}</div>
+            <div class="community-file__meta">${formatSize(f.metadata?.size || 0)} • ${formatTime(f.created_at)}</div>
           </div>
-        `).join('');
+          <span class="community-file__arrow">→</span>
+        </div>
+      `).join('');
 
-      // Add click handlers
       communityList.querySelectorAll('.community-file').forEach(el => {
         el.addEventListener('click', () => {
-          loadCommunityFile(el.dataset.id, el.querySelector('.community-file__name').textContent);
+          loadCommunityFile(el.dataset.name);
         });
       });
     } catch (err) {
+      console.error(err);
       communityList.innerHTML = '<div class="community-panel__empty">Could not load files</div>';
     }
   }
 
+  function updateUsageIndicator(sizeInBytes) {
+    const sizeInMB = sizeInBytes / (1024 * 1024);
+    const percent = Math.min((sizeInBytes / MAX_BUCKET_SIZE) * 100, 100);
+    
+    usageText.textContent = `${sizeInMB.toFixed(2)} / 50 MB (${percent.toFixed(1)}%)`;
+    usageFill.style.width = percent + '%';
+    
+    if (percent > 90) usageFill.style.background = 'var(--accent-7)'; // Warning color
+    else usageFill.style.background = 'linear-gradient(90deg, var(--accent-5), var(--accent-4))';
+  }
+
   // Load a specific community file
-  async function loadCommunityFile(id, name) {
+  async function loadCommunityFile(name) {
     try {
-      const res = await fetch(`/api/files/${id}`);
-      if (!res.ok) throw new Error('File not found');
+      const { data, error } = await supabase.storage
+        .from(SUPABASE_CONFIG.bucketName)
+        .download(name);
 
-      const text = await res.text();
+      if (error) throw error;
 
-      filenameDisplay.textContent = name;
+      const text = await data.text();
+      const displayName = name.split('_').slice(1).join('_');
+      
+      filenameDisplay.textContent = displayName;
       filenameDisplay.classList.add('visible');
 
       renderFromText(text);
       communityPanel.classList.remove('open');
-      showToast(`Loaded "${name}" from community`, 'success');
+      showToast(`Loaded "${displayName}" from community`, 'success');
     } catch (err) {
       showToast('Failed to load file', 'error');
     }

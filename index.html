@@ -7,6 +7,7 @@
   <title>MindMapper — RTF to Mind Map</title>
   <link rel="stylesheet" href="index.css">
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="app">
@@ -112,7 +113,16 @@
         <input type="file" id="community-file-input" accept=".rtf" style="display:none">
       </button>
 
-      <div class="community-panel__info">Up to 10 files • Oldest removed when full</div>
+      <div class="community-usage">
+        <div class="community-usage__header">
+          <span class="community-usage__label">Bucket Usage</span>
+          <span id="usage-text" class="community-usage__stats">0 / 50 MB (0%)</span>
+        </div>
+        <div class="community-usage__bar">
+          <div id="usage-fill" class="community-usage__fill" style="width: 0%"></div>
+        </div>
+        <div class="community-panel__info">Up to 10 files • Oldest removed when full</div>
+      </div>
 
       <div id="community-list" class="community-panel__list">
         <div class="community-panel__empty">No files shared yet</div>
@@ -127,6 +137,6 @@
 
 <script src="rtfParser.js"></script>
 <script src="mindmap.js"></script>
-<script src="app.js"></script>
+<script type="module" src="app.js"></script>
 </body>
 </html>

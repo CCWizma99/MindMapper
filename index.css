@@ -719,11 +719,56 @@ body::before {
   box-shadow: 0 0 16px rgba(16, 185, 129, 0.15);
 }
 
+/* ---------- Usage Indicator ---------- */
+.community-usage {
+  margin: 0 20px 16px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+}
+
+.community-usage__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.community-usage__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.community-usage__stats {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.community-usage__bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.community-usage__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-5), var(--accent-4));
+  border-radius: var(--radius-pill);
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.4);
+}
+
 .community-panel__info {
   text-align: center;
   font-size: 11px;
   color: var(--text-muted);
-  margin: 8px 20px 12px;
 }
 
 .community-panel__list {
